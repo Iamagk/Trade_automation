@@ -1,0 +1,6 @@
+pandas
+yfinance
+schedule
+python-dotenv
+requests
+kiteconnect

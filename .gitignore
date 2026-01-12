@@ -1,0 +1,19 @@
+# Secrets
+.env
+access_token.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Data & Logs
+*.csv
+strategy_state.json
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
