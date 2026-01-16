@@ -133,5 +133,10 @@ def main():
         print("Please specify --run-now, --schedule, or --login")
         parser.print_help()
 
+from src.database import engine, Base
+
 if __name__ == "__main__":
+    # Create tables if they don't exist
+    Base.metadata.create_all(bind=engine)
     main()
+

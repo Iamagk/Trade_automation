@@ -2,6 +2,8 @@ import csv
 import os
 from datetime import datetime
 from typing import List, Dict, Any
+from .database import SessionLocal
+from . import models
 
 class CSVLogger:
     def __init__(self, trades_file: str = "trades.csv", screening_file: str = "screening_log.csv"):
@@ -24,29 +26,80 @@ class CSVLogger:
 
     def log_trade(self, symbol: str, action: str, quantity: int, price: float):
         now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+        total_cost = quantity * price
+
+        # CSV Logging
         with open(self.trades_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow([
-                now.strftime("%Y-%m-%d"),
-                now.strftime("%H:%M:%S"),
+                date_str,
+                time_str,
                 symbol,
                 action,
                 quantity,
                 f"{price:.2f}",
-                f"{quantity * price:.2f}"
+                f"{total_cost:.2f}"
             ])
+        
+        # DB Logging
+        db = SessionLocal()
+        try:
+            db_trade = models.Trade(
+                date=date_str,
+                time=time_str,
+                symbol=symbol,
+                action=action,
+                quantity=quantity,
+                price=price,
+                total_cost=total_cost
+            )
+            db.add(db_trade)
+            db.commit()
+        except Exception as e:
+            print(f"Error logging trade to DB: {e}")
+            db.rollback()
+        finally:
+            db.close()
 
     def log_screening_candidates(self, candidates: List[Any]): # Expecting list of StockData
         now = datetime.now()
+        date_str = now.strftime("%Y-%m-%d")
+        time_str = now.strftime("%H:%M:%S")
+
+        # CSV Logging
         with open(self.screening_file, 'a', newline='') as f:
             writer = csv.writer(f)
             for i, c in enumerate(candidates, 1):
                 writer.writerow([
-                    now.strftime("%Y-%m-%d"),
-                    now.strftime("%H:%M:%S"),
+                    date_str,
+                    time_str,
                     i,
                     c.symbol,
                     f"{c.current_price:.2f}",
                     f"{c.dma_25:.2f}",
                     f"{c.percent_below_dma * 100:.2f}%"
                 ])
+        
+        # DB Logging
+        db = SessionLocal()
+        try:
+            for i, c in enumerate(candidates, 1):
+                db_log = models.ScreeningLog(
+                    date=date_str,
+                    time=time_str,
+                    rank=i,
+                    symbol=c.symbol,
+                    current_price=c.current_price,
+                    dma_25=c.dma_25,
+                    percent_below_dma=f"{c.percent_below_dma * 100:.2f}%"
+                )
+                db.add(db_log)
+            db.commit()
+        except Exception as e:
+            print(f"Error logging screening to DB: {e}")
+            db.rollback()
+        finally:
+            db.close()
+
