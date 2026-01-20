@@ -99,17 +99,36 @@ class ZerodhaBroker(IBroker):
             return 0.0
 
     def get_ltp(self, symbols: List[str]) -> Dict[str, float]:
+        """
+        Fetch Last Traded Price from Yahoo Finance.
+        Zerodha API has permission restrictions for market data.
+        """
         try:
-            # Zerodha ltp expects format like ["NSE:RELIANCE", "NSE:ITC"]
-            query = [f"NSE:{s.replace('.NS', '')}" for s in symbols]
-            ltp_data = self.kite.ltp(query)
+            import yfinance as yf
             
             result = {}
-            for s in symbols:
-                k = f"NSE:{s.replace('.NS', '')}"
-                if k in ltp_data:
-                    result[s] = float(ltp_data[k]['last_price'])
+            for symbol in symbols:
+                try:
+                    # Ensure symbol has .NS suffix for NSE stocks
+                    yf_symbol = symbol if symbol.endswith('.NS') else f"{symbol}.NS"
+                    ticker = yf.Ticker(yf_symbol)
+                    
+                    # Get the current price (last traded price)
+                    info = ticker.info
+                    current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+                    
+                    if current_price:
+                        result[symbol] = float(current_price)
+                    else:
+                        # Fallback: try to get from history
+                        hist = ticker.history(period='1d')
+                        if not hist.empty:
+                            result[symbol] = float(hist['Close'].iloc[-1])
+                except Exception as e:
+                    print(f"Error fetching LTP for {symbol}: {e}")
+                    continue
+            
             return result
         except Exception as e:
-            print(f"Error fetching LTP: {e}")
+            print(f"Error fetching LTP from Yahoo Finance: {e}")
             return {}

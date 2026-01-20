@@ -122,6 +122,9 @@ export default function Investments() {
                         <div className={`text-2xl font-bold ${totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {totalPnL >= 0 ? '+' : ''}₹{totalPnL.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
+                        <div className={`text-sm font-semibold mt-1 ${totalPnL >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {totalPnL >= 0 ? '+' : ''}{totalInvestedValue > 0 ? ((totalPnL / totalInvestedValue) * 100).toFixed(2) : '0.00'}%
+                        </div>
                     </div>
                 </div>
 
@@ -185,9 +188,14 @@ export default function Investments() {
                                                     ) : (
                                                         <TrendingDown className="w-4 h-4 text-rose-400" />
                                                     )}
-                                                    <span className={`text-sm font-semibold ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
-                                                        {isPositive ? '+' : ''}₹{pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </span>
+                                                    <div className="flex flex-col">
+                                                        <span className={`text-sm font-semibold ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
+                                                            {isPositive ? '+' : ''}₹{pnl.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        </span>
+                                                        <span className={`text-xs font-medium ${isPositive ? "text-emerald-400/70" : "text-rose-400/70"}`}>
+                                                            {isPositive ? '+' : ''}{((pnl / (holding.average_price * holding.quantity)) * 100).toFixed(2)}%
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </td>
                                         </tr>
