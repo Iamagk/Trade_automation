@@ -22,6 +22,7 @@ export default function TradeHistory() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     const fetchTrades = async () => {
         const token = localStorage.getItem("token");
@@ -31,7 +32,7 @@ export default function TradeHistory() {
         }
 
         try {
-            const response = await axios.get("http://localhost:8000/trades", {
+            const response = await axios.get(`${API_URL}/trades`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             // Sort trades by date and time descending (newest first)
