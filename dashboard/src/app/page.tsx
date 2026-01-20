@@ -20,10 +20,10 @@ import {
   Zap
 } from "lucide-react";
 
-import { statsService } from "../../services/statsService";
-import { botService } from "../../services/botService";
-import { authService } from "../../services/authService";
-import { BotStatus } from "../../services/types";
+import { statsService } from "../services/statsService";
+import { botService } from "../services/botService";
+import { authService } from "../services/authService";
+import { BotStatus } from "../services/types";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
