@@ -20,9 +20,28 @@ app.add_middleware(
 
 app.include_router(router)
 
+from . import auth
+from ..database import engine, Base, SessionLocal
+
 @app.on_event("startup")
 def startup_event():
     Base.metadata.create_all(bind=engine)
+    
+    # Auto-seed default user if not exists
+    db = SessionLocal()
+    try:
+        user = db.query(models.User).filter(models.User.username == "admin").first()
+        if not user:
+            print("Seeding default admin user...")
+            hashed_pw = auth.get_password_hash("admin123")
+            new_user = models.User(username="admin", hashed_password=hashed_pw)
+            db.add(new_user)
+            db.commit()
+            print("Default admin user created.")
+    except Exception as e:
+        print(f"Error seeding user: {e}")
+    finally:
+        db.close()
 
 @app.get("/")
 async def root():
