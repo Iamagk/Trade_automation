@@ -4,3 +4,8 @@ schedule
 python-dotenv
 requests
 kiteconnect
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
