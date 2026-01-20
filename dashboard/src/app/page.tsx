@@ -4,7 +4,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import axios from "axios";
 import {
   LineChart,
   TrendingUp,
@@ -21,65 +20,46 @@ import {
   Zap
 } from "lucide-react";
 
+import { statsService } from "../../services/statsService";
+import { botService } from "../../services/botService";
+import { authService } from "../../services/authService";
+import { BotStatus } from "../../services/types";
+
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
-  const [botStatus, setBotStatus] = useState<any>({ is_running: false, mode: null });
+  const [botStatus, setBotStatus] = useState<BotStatus>({ is_running: false, mode: null, pid: null });
   const [botLogs, setBotLogs] = useState<string[]>([]);
   const [requestToken, setRequestToken] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const logContainerRef = useRef<HTMLDivElement>(null);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
   const fetchStats = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
     try {
-      const response = await axios.get(`${API_URL}/stats`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setStats(response.data);
+      const data = await statsService.getStats();
+      setStats(data);
     } catch (err: any) {
       console.error("Failed to fetch stats", err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem("token");
-        router.push("/login");
-      }
+      // Auth errors handled by interceptor
     } finally {
       setLoading(false);
     }
   };
 
   const fetchBotStatus = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-      const response = await axios.get(`${API_URL}/bot/status`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBotStatus(response.data);
+      const status = await botService.getStatus();
+      setBotStatus(status);
     } catch (err) {
       console.error("Failed to fetch bot status", err);
     }
   };
 
   const fetchBotLogs = async () => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-      const response = await axios.get(`${API_URL}/bot/logs`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setBotLogs(response.data.logs);
+      const data = await botService.getLogs();
+      setBotLogs(data.logs);
 
-      // Auto-scroll to bottom
       if (logContainerRef.current) {
         logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
       }
@@ -89,57 +69,53 @@ export default function Dashboard() {
   };
 
   const handleBotAction = async (action: string, mode?: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     try {
-      if (action === "start") {
-        await axios.post(`${API_URL}/bot/start`, { mode }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+      if (action === "start" && mode) {
+        await botService.startBot(mode);
       } else {
-        await axios.post(`${API_URL}/bot/stop`, {}, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        await botService.stopBot();
       }
       fetchBotStatus();
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Action failed");
+      alert(err.response?.data?.detail || err.message || "Action failed");
     }
   };
 
   const handleSendInput = async () => {
-    const token = localStorage.getItem("token");
-    if (!token || !requestToken) return;
+    if (!requestToken) return;
 
     try {
-      await axios.post(`${API_URL}/bot/input`, { input: requestToken }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await botService.sendInput(requestToken);
       setRequestToken("");
       alert("Token sent to bot");
     } catch (err: any) {
-      alert(err.response?.data?.detail || "Failed to send token");
+      alert(err.response?.data?.detail || err.message || "Failed to send token");
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    router.push("/login");
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      router.push("/login");
+    } catch (e) {
+      console.error("Logout failed", e);
+      router.push("/login"); // Force redirect
+    }
   };
 
   useEffect(() => {
+    // Initial check
     fetchStats();
     fetchBotStatus();
 
     const statusInterval = setInterval(fetchBotStatus, 5000);
 
+    // Poll logs if running (stubbed for now)
     let logsInterval: any;
     if (botStatus.is_running) {
       fetchBotLogs();
       logsInterval = setInterval(fetchBotLogs, 2000);
     } else {
-      // Final fetch to get completion messages
       fetchBotLogs();
     }
 
@@ -164,7 +140,7 @@ export default function Dashboard() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">Trading Dashboard</h1>
-            <p className="text-gray-400">Welcome back, Administrator</p>
+            <p className="text-gray-400">Welcome back, Client</p>
           </div>
           <div className="flex gap-3">
             <button

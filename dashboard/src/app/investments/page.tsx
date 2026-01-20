@@ -3,47 +3,32 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import {
     ArrowLeft,
     TrendingUp,
     TrendingDown,
-    DollarSign,
-    Clock,
     LogOut,
     RefreshCcw,
     Search,
-    Filter,
     Briefcase
 } from "lucide-react";
 import Link from "next/link";
+import { holdingsService, Holding } from "../../services/holdingsService";
+import { authService } from "../../services/authService";
 
 export default function Investments() {
-    const [holdings, setHoldings] = useState<any[]>([]);
+    const [holdings, setHoldings] = useState<Holding[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
     const fetchHoldings = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            router.push("/login");
-            return;
-        }
-
         try {
-            const response = await axios.get(`${API_URL}/holdings`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setHoldings(response.data);
+            const data = await holdingsService.getHoldings();
+            setHoldings(data);
         } catch (err: any) {
             console.error("Failed to fetch holdings", err);
-            if (err.response?.status === 401) {
-                localStorage.removeItem("token");
-                router.push("/login");
-            }
+            // Auth errors handled by interceptor
         } finally {
             setLoading(false);
         }
@@ -53,9 +38,13 @@ export default function Investments() {
         fetchHoldings();
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/login");
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            router.push("/login");
+        } catch (e) {
+            router.push("/login");
+        }
     };
 
     const filteredHoldings = holdings.filter(holding =>
@@ -149,7 +138,7 @@ export default function Investments() {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-gray-950 text-gray-400 text-xs uppercase">
-                                <tr>
+                                <tr className="text-gray-400">
                                     <th className="px-6 py-4">Symbol</th>
                                     <th className="px-6 py-4">Quantity</th>
                                     <th className="px-6 py-4">Avg. Price</th>

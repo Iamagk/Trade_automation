@@ -3,8 +3,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import { Lock, User, AlertCircle } from "lucide-react";
+import { authService } from "../../services/authService";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -13,27 +13,17 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const params = new URLSearchParams();
-            params.append("username", username);
-            params.append("password", password);
-
-            const response = await axios.post(`${API_URL}/token`, params, {
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                },
-            });
-
-            localStorage.setItem("token", response.data.access_token);
+            // New backend uses JSON body, not form-urlencoded
+            await authService.login({ username, password });
             router.push("/");
         } catch (err: any) {
+            // controllerService might throw the axios error
             setError(
                 err.response?.data?.detail || "Login failed. Please check your credentials."
             );
@@ -100,7 +90,7 @@ export default function LoginPage() {
                 </form>
 
                 <p className="text-center mt-8 text-sm text-gray-500">
-                    Default credentials: <span className="text-gray-400 font-mono">admin / admin123</span>
+                    Default credentials: <span className="text-gray-400 font-mono">allenngk / Kkmballenn@2004</span>
                 </p>
             </div>
         </div>

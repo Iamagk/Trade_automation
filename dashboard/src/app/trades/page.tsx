@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import {
     ArrowLeft,
     ArrowUpRight,
@@ -16,27 +15,21 @@ import {
     Filter
 } from "lucide-react";
 import Link from "next/link";
+import { tradeService } from "../../services/tradeService";
+import { authService } from "../../services/authService";
+import { Trade } from "../../services/types";
 
 export default function TradeHistory() {
-    const [trades, setTrades] = useState<any[]>([]);
+    const [trades, setTrades] = useState<Trade[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
     const fetchTrades = async () => {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            router.push("/login");
-            return;
-        }
-
         try {
-            const response = await axios.get(`${API_URL}/trades`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const data = await tradeService.getTrades();
             // Sort trades by date and time descending (newest first)
-            const sortedTrades = response.data.sort((a: any, b: any) => {
+            const sortedTrades = data.sort((a: any, b: any) => {
                 const dateA = new Date(`${a.date}T${a.time}`);
                 const dateB = new Date(`${b.date}T${b.time}`);
                 return dateB.getTime() - dateA.getTime();
@@ -44,10 +37,7 @@ export default function TradeHistory() {
             setTrades(sortedTrades);
         } catch (err: any) {
             console.error("Failed to fetch trades", err);
-            if (err.response?.status === 401) {
-                localStorage.removeItem("token");
-                router.push("/login");
-            }
+            // Auth errors handled by interceptor
         } finally {
             setLoading(false);
         }
@@ -57,9 +47,13 @@ export default function TradeHistory() {
         fetchTrades();
     }, []);
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/login");
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            router.push("/login");
+        } catch (e) {
+            router.push("/login");
+        }
     };
 
     const filteredTrades = trades.filter(trade =>
