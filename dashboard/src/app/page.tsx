@@ -30,6 +30,8 @@ export default function Dashboard() {
   const router = useRouter();
   const logContainerRef = useRef<HTMLDivElement>(null);
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
   const fetchStats = async () => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -38,7 +40,7 @@ export default function Dashboard() {
     }
 
     try {
-      const response = await axios.get("http://localhost:8000/stats", {
+      const response = await axios.get(`${API_URL}/stats`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setStats(response.data);
@@ -58,7 +60,7 @@ export default function Dashboard() {
     if (!token) return;
 
     try {
-      const response = await axios.get("http://localhost:8000/bot/status", {
+      const response = await axios.get(`${API_URL}/bot/status`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBotStatus(response.data);
@@ -72,7 +74,7 @@ export default function Dashboard() {
     if (!token) return;
 
     try {
-      const response = await axios.get("http://localhost:8000/bot/logs", {
+      const response = await axios.get(`${API_URL}/bot/logs`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBotLogs(response.data.logs);
@@ -92,11 +94,11 @@ export default function Dashboard() {
 
     try {
       if (action === "start") {
-        await axios.post("http://localhost:8000/bot/start", { mode }, {
+        await axios.post(`${API_URL}/bot/start`, { mode }, {
           headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        await axios.post("http://localhost:8000/bot/stop", {}, {
+        await axios.post(`${API_URL}/bot/stop`, {}, {
           headers: { Authorization: `Bearer ${token}` }
         });
       }
@@ -111,7 +113,7 @@ export default function Dashboard() {
     if (!token || !requestToken) return;
 
     try {
-      await axios.post("http://localhost:8000/bot/input", { input: requestToken }, {
+      await axios.post(`${API_URL}/bot/input`, { input: requestToken }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setRequestToken("");

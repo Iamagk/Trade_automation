@@ -24,6 +24,8 @@ export default function Investments() {
     const [searchTerm, setSearchTerm] = useState("");
     const router = useRouter();
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
     const fetchHoldings = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -32,7 +34,7 @@ export default function Investments() {
         }
 
         try {
-            const response = await axios.get("http://localhost:8000/holdings", {
+            const response = await axios.get(`${API_URL}/holdings`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setHoldings(response.data);
