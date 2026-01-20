@@ -30,11 +30,11 @@ def startup_event():
     # Auto-seed default user if not exists
     db = SessionLocal()
     try:
-        user = db.query(models.User).filter(models.User.username == "admin").first()
+        user = db.query(models.User).filter(models.User.username == "allenngk").first()
         if not user:
             print("Seeding default admin user...")
-            hashed_pw = auth.get_password_hash("admin123")
-            new_user = models.User(username="admin", hashed_password=hashed_pw)
+            hashed_pw = auth.get_password_hash("Kkmballenn@2004")
+            new_user = models.User(username="allenngk", hashed_password=hashed_pw)
             db.add(new_user)
             db.commit()
             print("Default admin user created.")
