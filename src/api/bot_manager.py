@@ -54,6 +54,7 @@ class BotManager:
         # Run in a new process group so we can kill it properly later
         self.process = subprocess.Popen(
             cmd,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, # Merge stderr into stdout
             preexec_fn=os.setsid if os.name != 'nt' else None,
@@ -81,6 +82,20 @@ class BotManager:
             self.current_mode = None
             return True
         except Exception:
+            return False
+
+    def send_input(self, data: str) -> bool:
+        if not self.process or self.process.poll() is not None:
+            return False
+        
+        try:
+            if not data.endswith('\n'):
+                data += '\n'
+            self.process.stdin.write(data.encode('utf-8'))
+            self.process.stdin.flush()
+            return True
+        except Exception as e:
+            print(f"Failed to send input: {e}")
             return False
 
     def get_status(self) -> Dict:

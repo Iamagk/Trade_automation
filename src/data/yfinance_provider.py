@@ -23,16 +23,20 @@ class YFinanceDataProvider(IDataProvider):
                 # Try to get Adj Close, fall back to Close
                 series = None
                 
-                # Check for Adj Close
-                if 'Adj Close' in data.columns.get_level_values(0) and ticker in data['Adj Close'].columns:
-                     series = data['Adj Close'][ticker]
-                elif 'Close' in data.columns.get_level_values(0) and ticker in data['Close'].columns:
-                     series = data['Close'][ticker]
+                # Check for Adj Close presence in MultiIndex columns
+                if 'Adj Close' in data.columns.get_level_values(0):
+                    adj_close_cols = data['Adj Close'].columns
+                    if ticker in adj_close_cols:
+                        series = data['Adj Close'][ticker]
+                
+                # Fallback to Close if Adj Close not found
+                if series is None and 'Close' in data.columns.get_level_values(0):
+                    close_cols = data['Close'].columns
+                    if ticker in close_cols:
+                        series = data['Close'][ticker]
                 
                 if series is None:
-                    # In case of flat index or other weirdness (e.g. single ticker download)
-                    # Use a more generic search if needed, but for now log warning
-                    print(f"Warning: No data found for {ticker}")
+                    # Ticker might be delisted or download failed
                     continue
 
                 series = series.dropna()

@@ -36,6 +36,10 @@ class ZerodhaBroker(IBroker):
 
     def place_buy_order(self, symbol: str, quantity: int, price: Optional[float] = None, exchange: str = "NSE") -> OrderResult:
         try:
+            # Round price to nearest 0.05 (tick size) if provided
+            if price is not None:
+                price = round(price * 20) / 20.0
+
             # Cleanup symbol suffix if present, regardless of exchange
             trading_symbol = symbol.replace(".NS", "").replace(".BO", "")
             
@@ -71,7 +75,41 @@ class ZerodhaBroker(IBroker):
     def get_available_margin(self) -> float:
         try:
             margins = self.kite.margins()
-            return margins['equity']['available']['cash']
+            
+            # Extract equity margins
+            equity_margins = margins.get('equity', {})
+            available = equity_margins.get('available', {})
+            
+            # The user's response shows funds in:
+            # 1. equity['net']
+            # 2. equity['available']['live_balance']
+            # 3. equity['available']['opening_balance']
+            
+            live_balance = available.get('live_balance', 0.0)
+            net_balance = equity_margins.get('net', 0.0)
+            cash_balance = available.get('cash', 0.0)
+            
+            final_margin = max(float(live_balance), float(net_balance), float(cash_balance))
+            
+            print(f"[DEBUG] Margin Check - Live: {live_balance}, Net: {net_balance}, Cash: {cash_balance} -> Using: {final_margin}")
+            
+            return final_margin
         except Exception as e:
             print(f"Error fetching margins: {e}")
             return 0.0
+
+    def get_ltp(self, symbols: List[str]) -> Dict[str, float]:
+        try:
+            # Zerodha ltp expects format like ["NSE:RELIANCE", "NSE:ITC"]
+            query = [f"NSE:{s.replace('.NS', '')}" for s in symbols]
+            ltp_data = self.kite.ltp(query)
+            
+            result = {}
+            for s in symbols:
+                k = f"NSE:{s.replace('.NS', '')}"
+                if k in ltp_data:
+                    result[s] = float(ltp_data[k]['last_price'])
+            return result
+        except Exception as e:
+            print(f"Error fetching LTP: {e}")
+            return {}

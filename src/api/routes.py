@@ -59,10 +59,27 @@ async def read_trades(skip: int = 0, limit: int = 100, db: Session = Depends(get
 
 @router.get("/stats")
 async def read_stats(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    # Simple stats: total trades, total cost
-    total_trades = db.query(models.Trade).count()
-    total_cost_res = db.query(func.sum(models.Trade.total_cost)).scalar()
-    total_cost = total_cost_res if total_cost_res is not None else 0.0
+    # Calculate active investment (cost basis of current holdings)
+    trades = db.query(models.Trade).all()
+    holdings_dict = {}
+    for trade in trades:
+        symbol = trade.symbol
+        if symbol not in holdings_dict:
+            holdings_dict[symbol] = {"qty": 0, "cost": 0.0}
+        
+        action = trade.action.upper()
+        if action in ["BUY", "AVERAGE"]:
+            holdings_dict[symbol]["qty"] += trade.quantity
+            holdings_dict[symbol]["cost"] += trade.total_cost
+        elif action == "SELL":
+            old_qty = holdings_dict[symbol]["qty"]
+            if old_qty > 0:
+                avg_price = holdings_dict[symbol]["cost"] / old_qty
+                holdings_dict[symbol]["qty"] -= trade.quantity
+                holdings_dict[symbol]["cost"] -= (trade.quantity * avg_price)
+    
+    total_cost = sum(h["cost"] for h in holdings_dict.values() if h["qty"] > 0)
+    total_trades = len(trades)
     
     # Correctly find the latest screening run
     latest_run = db.query(models.ScreeningLog.date, models.ScreeningLog.time).order_by(models.ScreeningLog.timestamp.desc()).first()
@@ -100,10 +117,86 @@ async def stop_bot(current_user: models.User = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="Bot is not running or could not be stopped")
     
     return {"status": "stopped"}
+    
+@router.post("/bot/input")
+async def send_bot_input(data: dict, current_user: models.User = Depends(get_current_user)):
+    input_text = data.get("input")
+    if not input_text:
+        raise HTTPException(status_code=400, detail="Input is required")
+    
+    success = bot_manager.send_input(input_text)
+    if not success:
+        raise HTTPException(status_code=400, detail="Bot is not running or could not receive input")
+    
+    return {"status": "sent"}
 
 @router.get("/bot/status")
 async def get_bot_status(current_user: models.User = Depends(get_current_user)):
     return bot_manager.get_status()
+
+@router.get("/holdings", response_model=List[schemas.HoldingResponse])
+async def read_holdings(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    from ..broker.zerodha_broker import ZerodhaBroker
+    from ..auth import get_access_token
+    from ..config import config
+    
+    # 1. Fetch all trades from database
+    trades = db.query(models.Trade).all()
+    
+    # 2. Aggregate trades into holdings
+    holdings_dict = {}
+    for trade in trades:
+        symbol = trade.symbol
+        if symbol not in holdings_dict:
+            holdings_dict[symbol] = {"total_qty": 0, "total_cost": 0.0}
+        
+        action = trade.action.upper()
+        if action in ["BUY", "AVERAGE"]:
+            holdings_dict[symbol]["total_qty"] += trade.quantity
+            holdings_dict[symbol]["total_cost"] += trade.total_cost
+        elif action == "SELL":
+            # Avoid division by zero if trade history is corrupted
+            old_qty = holdings_dict[symbol]["total_qty"]
+            if old_qty > 0:
+                # Reduce cost proportionally based on the average price before the sell
+                avg_price_before = holdings_dict[symbol]["total_cost"] / old_qty
+                holdings_dict[symbol]["total_qty"] -= trade.quantity
+                holdings_dict[symbol]["total_cost"] -= (trade.quantity * avg_price_before)
+            else:
+                # Should not happen with valid bot data, but prevent negative cost
+                holdings_dict[symbol]["total_qty"] -= trade.quantity
+
+    # Filter out closed positions
+    bot_holdings = []
+    symbols_to_fetch = []
+    for symbol, data in holdings_dict.items():
+        if data["total_qty"] > 0:
+            avg_price = data["total_cost"] / data["total_qty"]
+            bot_holdings.append({
+                "symbol": symbol,
+                "quantity": data["total_qty"],
+                "average_price": avg_price,
+                "current_price": avg_price # Fallback
+            })
+            symbols_to_fetch.append(symbol)
+
+    if not bot_holdings:
+        return []
+
+    # 3. Fetch live prices for these symbols
+    access_token = get_access_token()
+    if access_token:
+        try:
+            broker = ZerodhaBroker(api_key=config.ZERODHA_API_KEY, access_token=access_token)
+            ltp_map = broker.get_ltp(symbols_to_fetch)
+            
+            for h in bot_holdings:
+                if h["symbol"] in ltp_map:
+                    h["current_price"] = ltp_map[h["symbol"]]
+        except Exception as e:
+            print(f"Error fetching live prices for holdings: {e}")
+
+    return bot_holdings
 
 @router.get("/bot/logs")
 async def get_bot_logs(current_user: models.User = Depends(get_current_user)):

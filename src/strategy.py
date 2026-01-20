@@ -107,17 +107,24 @@ class NiftyShopStrategy:
                 
                 if self.dry_run:
                     print(f"[DRY RUN] Would place BUY order: {stock.symbol}, Qty: {estimated_qty} @ {stock.current_price}")
-                    # In dry run, we don't record to state/csv to avoid polluting history? 
-                    # Or maybe we log it as a simulation. Usually dry run implies no side effects.
                 else:
-                    self.broker.place_buy_order(stock.symbol, estimated_qty, stock.current_price)
-                    self.state_manager.record_averaging(
-                        symbol=stock.symbol,
-                        quantity=estimated_qty,
-                        price=stock.current_price,
-                        cost=cost,
-                        message=f"Averaged {stock.symbol}: {estimated_qty} @ {stock.current_price}"
-                    )
+                    # Margin Check
+                    available_margin = self.broker.get_available_margin()
+                    if available_margin < cost:
+                        print(f"CRITICAL: Insufficient funds. Required: {cost}, Available: {available_margin}. Skipping {stock.symbol}.")
+                        return
+
+                    try:
+                        self.broker.place_buy_order(stock.symbol, estimated_qty, stock.current_price)
+                        self.state_manager.record_averaging(
+                            symbol=stock.symbol,
+                            quantity=estimated_qty,
+                            price=stock.current_price,
+                            cost=cost,
+                            message=f"Averaged {stock.symbol}: {estimated_qty} @ {stock.current_price}"
+                        )
+                    except Exception as e:
+                        print(f"CRITICAL ERROR: Failed to average {stock.symbol}: {e}")
             else:
                 print("Averaging capital limit reached. Skipping.")
         else:
@@ -128,14 +135,23 @@ class NiftyShopStrategy:
                 if self.dry_run:
                      print(f"[DRY RUN] Would place BUY order: {stock.symbol}, Qty: {estimated_qty} @ {stock.current_price}")
                 else:
-                    self.broker.place_buy_order(stock.symbol, estimated_qty, stock.current_price)
-                    self.state_manager.record_new_order(
-                        symbol=stock.symbol,
-                        quantity=estimated_qty,
-                        price=stock.current_price,
-                        cost=cost,
-                        message=f"Bought {stock.symbol}: {estimated_qty} @ {stock.current_price}"
-                    )
+                    # Margin Check
+                    available_margin = self.broker.get_available_margin()
+                    if available_margin < cost:
+                        print(f"CRITICAL: Insufficient funds. Required: {cost}, Available: {available_margin}. Skipping {stock.symbol}.")
+                        return
+
+                    try:
+                        self.broker.place_buy_order(stock.symbol, estimated_qty, stock.current_price)
+                        self.state_manager.record_new_order(
+                            symbol=stock.symbol,
+                            quantity=estimated_qty,
+                            price=stock.current_price,
+                            cost=cost,
+                            message=f"Bought {stock.symbol}: {estimated_qty} @ {stock.current_price}"
+                        )
+                    except Exception as e:
+                        print(f"CRITICAL ERROR: Failed to buy {stock.symbol}: {e}")
             else:
                 print("New Order capital limit reached or Max Daily Orders reached. Skipping.")
 

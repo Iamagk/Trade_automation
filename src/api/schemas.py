@@ -47,3 +47,9 @@ class TradeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class HoldingResponse(BaseModel):
+    symbol: str
+    quantity: int
+    average_price: float
+    current_price: float

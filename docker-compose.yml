@@ -3,11 +3,11 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_USER: nifty_user
-      POSTGRES_PASSWORD: nifty_password
-      POSTGRES_DB: nifty_shop
+      POSTGRES_USER: nifty_user_isolated
+      POSTGRES_PASSWORD: nifty_pass_789
+      POSTGRES_DB: nifty_db_isolated
     ports:
-      - "5433:5432"
+      - "5434:5432"
     volumes:
       - nifty_db_data:/var/lib/postgresql/data
 

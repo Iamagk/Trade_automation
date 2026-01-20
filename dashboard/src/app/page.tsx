@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [botStatus, setBotStatus] = useState<any>({ is_running: false, mode: null });
   const [botLogs, setBotLogs] = useState<string[]>([]);
+  const [requestToken, setRequestToken] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleSendInput = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !requestToken) return;
+
+    try {
+      await axios.post("http://localhost:8000/bot/input", { input: requestToken }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setRequestToken("");
+      alert("Token sent to bot");
+    } catch (err: any) {
+      alert(err.response?.data?.detail || "Failed to send token");
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/login");
@@ -182,15 +198,21 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          <div className="p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-lg group hover:border-emerald-500/50 transition-all">
+          <Link href="/investments" className="p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-lg group hover:border-emerald-500/50 transition-all cursor-pointer overflow-hidden relative">
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-400">
                 <DollarSign className="w-6 h-6" />
               </div>
+              <div className="text-xs text-emerald-400 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0 font-medium">
+                View Portfolio →
+              </div>
             </div>
             <div className="text-sm text-gray-400 mb-1">Total Investment</div>
             <div className="text-3xl font-bold">₹{stats?.total_cost?.toLocaleString() || "0.00"}</div>
-          </div>
+            <div className="absolute bottom-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all transform scale-150 group-hover:scale-100">
+              <DollarSign className="w-16 h-16" />
+            </div>
+          </Link>
 
           <div className="p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-lg group hover:border-purple-500/50 transition-all">
             <div className="flex justify-between items-start mb-4">
@@ -314,14 +336,49 @@ export default function Dashboard() {
               </h2>
               <div className="grid grid-cols-1 gap-3">
                 {botStatus.is_running ? (
-                  <button
-                    onClick={() => handleBotAction("stop")}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all font-semibold"
-                  >
-                    <Square className="w-4 h-4" /> Stop Bot ({botStatus.mode})
-                  </button>
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => handleBotAction("stop")}
+                      className="flex items-center justify-center gap-2 w-full py-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-500/20 transition-all font-semibold"
+                    >
+                      <Square className="w-4 h-4" /> Stop Bot ({botStatus.mode})
+                    </button>
+
+                    {botStatus.mode === "login" && (
+                      <div className="p-4 bg-gray-950 rounded-xl border border-gray-800 animate-in fade-in slide-in-from-top-2 duration-500">
+                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                          Enter Request Token
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={requestToken}
+                            onChange={(e) => setRequestToken(e.target.value)}
+                            placeholder="Paste token here..."
+                            className="bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-purple-500 transition-all"
+                          />
+                          <button
+                            onClick={handleSendInput}
+                            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
+                          >
+                            Submit
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-gray-500 mt-2">
+                          Copy the token from the redirected URL after logging in.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <>
+                    <button
+                      onClick={() => handleBotAction("start", "login")}
+                      className="flex items-center justify-center gap-2 w-full py-3 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded-xl hover:bg-purple-500/20 transition-all text-sm font-bold"
+                    >
+                      <ShieldCheck className="w-4 h-4" /> Authorize Zerodha
+                    </button>
+                    <div className="h-px bg-gray-800 my-2"></div>
                     <button
                       onClick={() => handleBotAction("start", "run_now_dry")}
                       className="flex items-center justify-center gap-2 w-full py-3 bg-blue-500/10 border border-blue-500/30 text-blue-400 rounded-xl hover:bg-blue-500/20 transition-all text-sm"

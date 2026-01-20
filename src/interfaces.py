@@ -55,3 +55,10 @@ class IBroker(ABC):
         Returns available cash margin.
         """
         pass
+
+    @abstractmethod
+    def get_ltp(self, symbols: List[str]) -> Dict[str, float]:
+        """
+        Returns a dictionary of symbol -> Last Traded Price.
+        """
+        pass
