@@ -14,7 +14,9 @@ class Config:
     PER_STOCK_ALLOCATION: float = 1000.0
     MAX_NEW_ORDERS_PER_DAY: int = 1
     HOLDING_DROP_THRESHOLD: float = 0.10  # 10%
+    SELL_PROFIT_THRESHOLD: float = 0.05  # 5% profit target for selling
     DMA_PERIOD: int = 25
     SCHEDULE_TIME: str = "15:20"  # 3:20 PM
 
 config = Config()
+

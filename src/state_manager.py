@@ -89,3 +89,12 @@ class StateManager:
         self.state.actions_log.append(message)
         self.save_state()
         self.logger.log_trade(symbol, "AVERAGE", quantity, price)
+    
+    def record_sell(self, symbol: str, quantity: int, price: float, revenue: float, message: str):
+        """Record a sell transaction"""
+        # "only one action per day"
+        self.state.orders_placed_count += 1
+        self.state.actions_log.append(message)
+        self.save_state()
+        self.logger.log_trade(symbol, "SELL", quantity, price, total_cost=revenue)
+

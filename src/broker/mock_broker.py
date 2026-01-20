@@ -46,5 +46,38 @@ class MockBroker(IBroker):
             symbol=symbol
         )
     
+    
     def get_available_margin(self) -> float:
         return 1000000.0 # Mock infinite margin
+    
+    def get_ltp(self, symbols: List[str]) -> Dict[str, float]:
+        """Mock LTP - returns current price from holdings or 0"""
+        result = {}
+        for symbol in symbols:
+            if symbol in self.holdings:
+                result[symbol] = self.holdings[symbol].current_price
+            else:
+                result[symbol] = 0.0
+        return result
+    
+    def place_sell_order(self, symbol: str, quantity: int, price: Optional[float] = None) -> OrderResult:
+        print(f"[MOCK BROKER] Placed SELL order for {symbol}: {quantity} qty @ {price}")
+        
+        # Update mock holdings - remove or reduce quantity
+        if symbol in self.holdings:
+            h = self.holdings[symbol]
+            if h.quantity <= quantity:
+                # Selling entire position
+                del self.holdings[symbol]
+            else:
+                # Partial sell
+                h.quantity -= quantity
+        
+        return OrderResult(
+            order_id=str(uuid.uuid4()),
+            status="COMPLETE",
+            average_price=price if price else 0.0,
+            quantity=quantity,
+            symbol=symbol
+        )
+

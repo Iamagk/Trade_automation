@@ -14,6 +14,16 @@ class NiftyShopStrategy:
     def run(self):
         print(f"--- Strategy Run Started ---")
         
+        # 0. Check for sell opportunities FIRST
+        holdings = self.broker.get_holdings()
+        if holdings:
+            print(f"Checking {len(holdings)} holdings for sell opportunities...")
+            sell_executed = self._check_and_execute_sells(holdings)
+            
+            if sell_executed:
+                print("Sell order executed. Skipping buy/averaging for today (one action per day).")
+                return
+        
         # 1. Screen Stocks
         print("Fetching Nifty 50 Data...")
         stock_data_map = self.data_provider.get_nifty50_data(NIFTY_50_TICKERS)
@@ -154,4 +164,116 @@ class NiftyShopStrategy:
                         print(f"CRITICAL ERROR: Failed to buy {stock.symbol}: {e}")
             else:
                 print("New Order capital limit reached or Max Daily Orders reached. Skipping.")
+    
+    def _get_bot_managed_symbols(self) -> set:
+        """
+        Get a set of symbols that have been bought by the bot.
+        """
+        # We can get this from the state manager's logger (CSV) or directly from DB if available.
+        # Since CSVLogger reads from CSV, let's essentially read the trades.csv
+        # or we can query the database passed to the API.
+        
+        # Ideally, we should access the database. But Strategy takes StateManager.
+        # Let's rely on reading trades.csv for now as it's the source of truth for the bot's actions in this architecture,
+        # or we can query the database via a new provider if we want to be strict.
+        # Given the imports, let's use the DB session if possible or just parse the CSV/State.
+        
+        # Actually, simpler: The StateManager or its Logger should provide this.
+        # Let's check StateManager.logger... it is CSVLogger. 
+        # Let's read the trades.csv file directly here or add a method to CSVLogger.
+        
+        # Let's just read the file for simplicity and robustness
+        import pandas as pd
+        import os
+        
+        trades_file = "trades.csv"
+        if not os.path.exists(trades_file):
+            return set()
+            
+        try:
+            df = pd.read_csv(trades_file)
+            # Filter for BUY or AVERAGE actions
+            bot_trades = df[df['Action'].isin(['BUY', 'AVERAGE'])]
+            return set(bot_trades['Symbol'].unique())
+        except Exception as e:
+            print(f"Error reading trades history: {e}")
+            return set()
+
+    def _check_and_execute_sells(self, holdings: List[Holding]) -> bool:
+        """
+        Check holdings for sell opportunities (5%+ profit).
+        Only considers holdings that were bought by the bot.
+        Returns True if a sell was executed.
+        """
+        # Get list of symbols bought by the bot
+        bot_managed_symbols = self._get_bot_managed_symbols()
+        
+        # Filter holdings
+        bot_holdings = [h for h in holdings if h.symbol in bot_managed_symbols]
+        
+        if not bot_holdings:
+            print(f"No bot-managed holdings found (checked {len(holdings)} broker holdings).")
+            return False
+            
+        print(f"Found {len(bot_holdings)} bot-managed holdings out of {len(holdings)} total holdings.")
+        
+        sell_candidates = []
+        
+        for holding in bot_holdings:
+            profit_pct = (holding.current_price - holding.average_price) / holding.average_price
+            print(f"Checking {holding.symbol}: Avg ₹{holding.average_price:.2f}, "
+                  f"Current ₹{holding.current_price:.2f}, "
+                  f"Profit {profit_pct*100:.2f}%")
+            
+            if profit_pct >= config.SELL_PROFIT_THRESHOLD:
+                sell_candidates.append((holding, profit_pct))
+        
+        if not sell_candidates:
+            print("No bot-managed holdings reached 5% profit target.")
+            return False
+        
+        # Sort by highest profit percentage (sell the most profitable first)
+        sell_candidates.sort(key=lambda x: x[1], reverse=True)
+        
+        # Execute sell for the most profitable holding
+        target_holding, profit_pct = sell_candidates[0]
+        print(f"Selected for SELL: {target_holding.symbol} (Profit: {profit_pct*100:.2f}%)")
+        
+        return self._execute_sell(target_holding)
+    
+    def _execute_sell(self, holding: Holding) -> bool:
+        """
+        Execute a sell order for the given holding.
+        Returns True if successful.
+        """
+        revenue = holding.quantity * holding.current_price
+        
+        print(f"Placing SELL order for {holding.symbol}...")
+        
+        if self.dry_run:
+            print(f"[DRY RUN] Would place SELL order: {holding.symbol}, "
+                  f"Qty: {holding.quantity} @ ₹{holding.current_price:.2f}")
+            return True
+        else:
+            try:
+                self.broker.place_sell_order(
+                    holding.symbol, 
+                    holding.quantity, 
+                    holding.current_price
+                )
+                
+                self.state_manager.record_sell(
+                    symbol=holding.symbol,
+                    quantity=holding.quantity,
+                    price=holding.current_price,
+                    revenue=revenue,
+                    message=f"Sold {holding.symbol}: {holding.quantity} @ ₹{holding.current_price:.2f}"
+                )
+                
+                print(f"✓ Sell order placed successfully for {holding.symbol}")
+                return True
+                
+            except Exception as e:
+                print(f"CRITICAL ERROR: Failed to sell {holding.symbol}: {e}")
+                return False
 

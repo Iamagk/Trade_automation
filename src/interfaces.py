@@ -62,3 +62,10 @@ class IBroker(ABC):
         Returns a dictionary of symbol -> Last Traded Price.
         """
         pass
+    
+    @abstractmethod
+    def place_sell_order(self, symbol: str, quantity: int, price: Optional[float] = None) -> OrderResult:
+        """
+        Places a sell order. If price is None, assumes Market Order.
+        """
+        pass

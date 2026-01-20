@@ -132,3 +132,41 @@ class ZerodhaBroker(IBroker):
         except Exception as e:
             print(f"Error fetching LTP from Yahoo Finance: {e}")
             return {}
+    
+    def place_sell_order(self, symbol: str, quantity: int, price: Optional[float] = None, exchange: str = "NSE") -> OrderResult:
+        try:
+            # Round price to nearest 0.05 (tick size) if provided
+            if price is not None:
+                price = round(price * 20) / 20.0
+
+            # Cleanup symbol suffix if present
+            trading_symbol = symbol.replace(".NS", "").replace(".BO", "")
+            
+            # Place Sell Order
+            order_type = self.kite.ORDER_TYPE_MARKET if price is None else self.kite.ORDER_TYPE_LIMIT
+            
+            order_id = self.kite.place_order(
+                tradingsymbol=trading_symbol,
+                exchange=exchange,
+                transaction_type=self.kite.TRANSACTION_TYPE_SELL,
+                quantity=quantity,
+                variety=self.kite.VARIETY_REGULAR,
+                order_type=order_type,
+                product=self.kite.PRODUCT_CNC,
+                price=price,
+                validity=self.kite.VALIDITY_DAY
+            )
+            
+            print(f"Sell order placed successfully. ID: {order_id}")
+            
+            return OrderResult(
+                order_id=str(order_id),
+                status="COMPLETE",
+                average_price=price if price else 0.0,
+                quantity=quantity,
+                symbol=symbol
+            )
+        except Exception as e:
+            print(f"Error placing sell order for {symbol}: {e}")
+            raise e
+

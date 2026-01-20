@@ -24,11 +24,12 @@ class CSVLogger:
                 writer = csv.writer(f)
                 writer.writerow(["Date", "Time", "Rank", "Symbol", "Current Price", "25 DMA", "% Below DMA"])
 
-    def log_trade(self, symbol: str, action: str, quantity: int, price: float):
+    def log_trade(self, symbol: str, action: str, quantity: int, price: float, total_cost: float = None):
         now = datetime.now()
         date_str = now.strftime("%Y-%m-%d")
         time_str = now.strftime("%H:%M:%S")
-        total_cost = quantity * price
+        if total_cost is None:
+            total_cost = quantity * price
 
         # CSV Logging
         with open(self.trades_file, 'a', newline='') as f:
