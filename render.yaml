@@ -4,8 +4,6 @@ services:
     env: docker
     plan: free
     region: singapore # or your preferred region
-    buildCommand: docker build -t backend .
-    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
         fromDatabase:
