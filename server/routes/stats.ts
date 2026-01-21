@@ -32,10 +32,50 @@ router.get('/', authenticateToken, async (req, res) => {
             }
         }
 
+        const activeSymbols = Object.keys(holdingsDict).filter(sym => holdingsDict[sym].qty > 0);
         let totalCost = 0;
-        for (const key in holdingsDict) {
-            if (holdingsDict[key].qty > 0) {
-                totalCost += holdingsDict[key].cost;
+        let totalValue = 0;
+
+        if (activeSymbols.length > 0) {
+            try {
+                const { execSync } = require('child_process');
+                const path = require('path');
+                const projectRoot = path.resolve(__dirname, '../../');
+
+                // Use the same project root detection logic as BotManager
+                // For Docker/Production, we need a reliable path to the python script
+                const fetchScript = path.join(projectRoot, 'src/tools/fetch_prices.py');
+                const symbolsArg = activeSymbols.join(' ');
+
+                // Detect python command (python3 or python)
+                let pythonCmd = 'python3';
+                try {
+                    execSync('python3 --version');
+                } catch {
+                    pythonCmd = 'python';
+                }
+
+                const output = execSync(`${pythonCmd} ${fetchScript} ${symbolsArg}`).toString();
+                const prices = JSON.parse(output);
+
+                for (const symbol of activeSymbols) {
+                    const stats = holdingsDict[symbol];
+                    totalCost += stats.cost;
+                    const ltp = prices[symbol] || 0;
+                    if (ltp > 0) {
+                        totalValue += (stats.qty * ltp);
+                    } else {
+                        // Fallback to cost if price fetch failed
+                        totalValue += stats.cost;
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching live prices for stats:', err);
+                // Fallback to cost if all else fails
+                for (const symbol of activeSymbols) {
+                    totalCost += holdingsDict[symbol].cost;
+                }
+                totalValue = totalCost;
             }
         }
 
@@ -61,6 +101,7 @@ router.get('/', authenticateToken, async (req, res) => {
         res.json({
             total_trades: trades.length,
             total_cost: totalCost,
+            total_value: totalValue, // NEW: Market Value
             last_screening: lastScreening
         });
 

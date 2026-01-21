@@ -215,8 +215,19 @@ export default function Dashboard() {
                 View Portfolio →
               </div>
             </div>
-            <div className="text-sm text-gray-400 mb-1">Total Investment</div>
-            <div className="text-3xl font-bold">₹{stats?.total_cost?.toLocaleString() || "0.00"}</div>
+            <div className="text-sm text-gray-400 mb-1">Current Market Value</div>
+            <div className="text-3xl font-bold mb-1">₹{stats?.total_value?.toLocaleString() || "0.00"}</div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-400">Cost: ₹{stats?.total_cost?.toLocaleString()}</span>
+              {stats?.total_cost > 0 && (
+                <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${(stats.total_value - stats.total_cost) >= 0
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'bg-red-500/10 text-red-400'
+                  }`}>
+                  {((stats.total_value - stats.total_cost) / stats.total_cost * 100).toFixed(2)}%
+                </span>
+              )}
+            </div>
             <div className="absolute bottom-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-all transform scale-150 group-hover:scale-100">
               <DollarSign className="w-16 h-16" />
             </div>

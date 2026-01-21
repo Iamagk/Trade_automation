@@ -20,23 +20,14 @@ class YFinanceDataProvider(IDataProvider):
         
         for ticker in tickers:
             try:
-                # Try to get Adj Close, fall back to Close
+                # 1. Get Historical Data for DMA (Daily)
                 series = None
-                
-                # Check for Adj Close presence in MultiIndex columns
                 if 'Adj Close' in data.columns.get_level_values(0):
-                    adj_close_cols = data['Adj Close'].columns
-                    if ticker in adj_close_cols:
-                        series = data['Adj Close'][ticker]
-                
-                # Fallback to Close if Adj Close not found
-                if series is None and 'Close' in data.columns.get_level_values(0):
-                    close_cols = data['Close'].columns
-                    if ticker in close_cols:
-                        series = data['Close'][ticker]
+                    series = data['Adj Close'][ticker]
+                elif 'Close' in data.columns.get_level_values(0):
+                    series = data['Close'][ticker]
                 
                 if series is None:
-                    # Ticker might be delisted or download failed
                     continue
 
                 series = series.dropna()
@@ -44,14 +35,23 @@ class YFinanceDataProvider(IDataProvider):
                     print(f"Not enough data for {ticker}")
                     continue
                 
-                current_price = series.iloc[-1]
+                # 2. Get accurate Real-Time LTP
+                ticker_obj = yf.Ticker(ticker)
+                # fast_info is much faster and more accurate for LTP than history()
+                try:
+                    current_price = ticker_obj.fast_info['last_price']
+                except:
+                    # Fallback to history 1m
+                    hist_1m = ticker_obj.history(period="1d", interval="1m")
+                    if not hist_1m.empty:
+                        current_price = hist_1m['Close'].iloc[-1]
+                    else:
+                        current_price = series.iloc[-1]
                 
                 # Calculate 25 DMA
                 dma_25 = series.rolling(window=config.DMA_PERIOD).mean().iloc[-1]
                 
-                # Handle NaN dma if rolling window not satisfied (should be covered by len check but safety first)
                 if pd.isna(dma_25):
-                    print(f"DMA calculation failed (NaN) for {ticker}")
                     continue
                 
                 percent_below = (current_price - dma_25) / dma_25

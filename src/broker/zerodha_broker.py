@@ -11,23 +11,25 @@ class ZerodhaBroker(IBroker):
     def get_holdings(self) -> List[Holding]:
         try:
             k_holdings = self.kite.holdings()
+            # Fetch accurate LTP from Yahoo Finance for all holdings
+            symbols = [h['tradingsymbol'] for h in k_holdings]
+            # Ensure .NS for LTP fetching
+            yf_symbols = [s if s.endswith(".NS") else f"{s}.NS" for s in symbols]
+            ltp_dict = self.get_ltp(yf_symbols)
+
             holdings_list = []
             for h in k_holdings:
-                # Zerodha symbols usually match NSE Symbols but might need mapping if instrument_token is used
-                # We typically use 'tradingsymbol'
-                symbol = h['tradingsymbol'] 
-                # Note: yfinance uses .NS suffix. We might need to handle this discrepancy.
-                # Usually Nifty 50 tradingsymbols are just 'ITC', 'RELIANCE' etc.
-                # Strategy expects 'ITC.NS'. We should append .NS if missing.
+                orig_symbol = h['tradingsymbol']
+                symbol = orig_symbol if orig_symbol.endswith(".NS") else f"{orig_symbol}.NS"
                 
-                if not symbol.endswith(".NS"):
-                    symbol = f"{symbol}.NS"
+                # Use YF price if available, else fallback to Zerodha
+                current_price = ltp_dict.get(symbol, float(h['last_price']))
                 
                 holdings_list.append(Holding(
                     symbol=symbol,
                     quantity=int(h['quantity']),
                     average_price=float(h['average_price']),
-                    current_price=float(h['last_price'])
+                    current_price=current_price
                 ))
             return holdings_list
         except Exception as e:
@@ -113,17 +115,22 @@ class ZerodhaBroker(IBroker):
                     yf_symbol = symbol if symbol.endswith('.NS') else f"{symbol}.NS"
                     ticker = yf.Ticker(yf_symbol)
                     
-                    # Get the current price (last traded price)
-                    info = ticker.info
-                    current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+                    # Try fast_info first
+                    try:
+                        current_price = ticker.fast_info['last_price']
+                    except:
+                        # Fallback: regular info or market price
+                        info = ticker.info
+                        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
                     
-                    if current_price:
-                        result[symbol] = float(current_price)
-                    else:
+                    if not current_price:
                         # Fallback: try to get from history
                         hist = ticker.history(period='1d')
                         if not hist.empty:
-                            result[symbol] = float(hist['Close'].iloc[-1])
+                            current_price = float(hist['Close'].iloc[-1])
+                    
+                    if current_price:
+                        result[symbol] = float(current_price)
                 except Exception as e:
                     print(f"Error fetching LTP for {symbol}: {e}")
                     continue
