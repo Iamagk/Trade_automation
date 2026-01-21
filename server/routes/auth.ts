@@ -47,8 +47,8 @@ router.post('/token', async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: true, // Required for sameSite: 'none'
+            sameSite: 'none', // Required for cross-domain cookies (Vercel -> Render)
             maxAge: EXPIRE_MINUTES * 60 * 1000,
         });
 
@@ -70,7 +70,11 @@ router.post('/token', async (req, res) => {
 
 // Logout endpoint
 router.post('/logout', (req, res) => {
-    res.clearCookie('token');
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none'
+    });
     res.json({ status: 'success' });
 });
 
