@@ -82,11 +82,11 @@ class BotManager {
         let displayMode = mode;
 
         if (mode === 'login') {
-            args.push('-m', 'src.main', '--login');
+            args.push('-u', '-m', 'src.main', '--login');
             displayMode = 'login';
         } else {
             // mode can be: run_now_dry, schedule_dry, run_now_real, schedule_real
-            args.push('-m', 'src.main');
+            args.push('-u', '-m', 'src.main');
 
             if (mode.includes('run_now')) {
                 args.push('--run-now');
