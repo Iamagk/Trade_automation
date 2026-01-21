@@ -17,7 +17,8 @@ import {
   Square,
   Settings,
   ShieldCheck,
-  Zap
+  Zap,
+  Trash2
 } from "lucide-react";
 
 import { statsService } from "@/services/statsService";
@@ -282,10 +283,19 @@ export default function Dashboard() {
                   <span className={`w-2 h-2 rounded-full ${botStatus.status === 'RUNNING' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`}></span>
                   Live Bot Output
                 </h2>
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-500/20"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-500/20"></div>
+                <div className="flex gap-3 items-center">
+                  <button
+                    onClick={() => setBotLogs([])}
+                    className="text-gray-500 hover:text-red-400 transition-colors p-1"
+                    title="Clear Terminal"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <div className="flex gap-1.5 border-l border-gray-800 pl-3">
+                    <div className="w-3 h-3 rounded-full bg-red-500/20"></div>
+                    <div className="w-3 h-3 rounded-full bg-amber-500/20"></div>
+                    <div className="w-3 h-3 rounded-full bg-emerald-500/20"></div>
+                  </div>
                 </div>
               </div>
               <div

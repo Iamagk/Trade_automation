@@ -61,6 +61,9 @@ class BotManager {
             throw new Error('Bot is already running');
         }
 
+        // Clear previous logs for each new action
+        this.state.logs = [];
+
         const projectRoot = this.getProjectRoot();
 
         // Auto-detect virtual environment
