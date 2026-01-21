@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 
 export type BotStatus = 'IDLE' | 'RUNNING' | 'ERROR';
 
@@ -46,8 +47,22 @@ class BotManager {
             throw new Error('Bot is already running');
         }
 
-        const pythonPath = process.env.PYTHON_PATH || 'python3';
         const projectRoot = path.resolve(__dirname, '../../');
+
+        // Auto-detect virtual environment
+        let pythonPath = process.env.PYTHON_PATH;
+        if (!pythonPath) {
+            const venvPath = path.join(projectRoot, '.venv');
+            const binPath = process.platform === 'win32'
+                ? path.join(venvPath, 'Scripts', 'python.exe')
+                : path.join(venvPath, 'bin', 'python3');
+
+            if (fs.existsSync(binPath)) {
+                pythonPath = binPath;
+            } else {
+                pythonPath = 'python3';
+            }
+        }
 
         const args = [];
         let displayMode = mode;
