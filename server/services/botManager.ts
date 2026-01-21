@@ -47,7 +47,16 @@ class BotManager {
             throw new Error('Bot is already running');
         }
 
-        const projectRoot = path.resolve(__dirname, '../../');
+        let projectRoot = path.resolve(__dirname, '../../');
+        // If we are in 'server/dist/services', go up one more level
+        if (__dirname.includes(path.join('server', 'dist')) || __dirname.includes('dist')) {
+            projectRoot = path.resolve(__dirname, '../../../');
+        }
+
+        // Final sanity check: if 'src' doesn't exist here, we might be in the compiled 'dist' folder structure
+        if (!fs.existsSync(path.join(projectRoot, 'src')) && fs.existsSync(path.resolve(projectRoot, '../src'))) {
+            projectRoot = path.resolve(projectRoot, '../');
+        }
 
         // Auto-detect virtual environment
         let pythonPath = process.env.PYTHON_PATH;
