@@ -2,10 +2,17 @@ import ControllerService from './controllerService';
 
 class AuthService extends ControllerService {
     public async login(data: { username: string; password: string }): Promise<any> {
-        return this.post<any>('/token', data);
+        const response = await this.post<any>('/token', data);
+        if (response.token && typeof window !== 'undefined') {
+            localStorage.setItem('auth_token', response.token);
+        }
+        return response;
     }
 
     public async logout(): Promise<void> {
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('auth_token');
+        }
         await this.post('/logout');
     }
 
@@ -14,10 +21,10 @@ class AuthService extends ControllerService {
     }
 
     public isAuthenticated(): boolean {
-        // With HttpOnly cookies, we primarily rely on backend validation 401s
-        // But we can check if we have a successful 'whoami' cached or similar.
-        // For now, return true and let 401 interceptor handle it.
-        return true;
+        if (typeof window !== 'undefined') {
+            return !!localStorage.getItem('auth_token');
+        }
+        return false;
     }
 }
 

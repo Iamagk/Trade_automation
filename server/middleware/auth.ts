@@ -25,7 +25,16 @@ export const authenticateToken = (
         return res.status(500).json({ detail: "Server misconfiguration" });
     }
 
-    const token = req.cookies.token; // HttpOnly cookie
+    let token = req.cookies.token; // Try HttpOnly cookie first
+
+    // Fallback to Authorization: Bearer <token> header for mobile/cross-site support
+    if (!token && req.headers.authorization) {
+        const authHeader = req.headers.authorization;
+        if (authHeader.startsWith('Bearer ')) {
+            token = authHeader.substring(7);
+        }
+    }
+
     if (!token) {
         return res.status(401).json({ detail: 'No token provided' });
     }

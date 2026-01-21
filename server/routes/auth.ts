@@ -56,11 +56,7 @@ router.post('/token', async (req, res) => {
         res.json({
             status: 'success',
             username: user.username,
-            // We can return access_token for backward compatibility if needed, 
-            // but style guide says HttpOnly cookies. 
-            // The frontend "controllerService" might expect something?
-            // "AuthService.ts" in style guide returns "response.data" from /token log.
-            // But it doesn't use the token in response, it relies on cookie.
+            token: token, // Return token for header storage
         });
 
     } catch (err: any) {

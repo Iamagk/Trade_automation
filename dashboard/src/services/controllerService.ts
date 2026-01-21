@@ -14,6 +14,20 @@ class ControllerService {
             },
         });
 
+        // Add request interceptor to attach Bearer token
+        this.api.interceptors.request.use(
+            (config) => {
+                if (typeof window !== "undefined") {
+                    const token = localStorage.getItem("auth_token");
+                    if (token) {
+                        config.headers.Authorization = `Bearer ${token}`;
+                    }
+                }
+                return config;
+            },
+            (error) => Promise.reject(error)
+        );
+
         // Global response interceptor for auth errors
         this.api.interceptors.response.use(
             (response) => response,
