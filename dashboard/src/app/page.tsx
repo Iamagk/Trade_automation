@@ -34,6 +34,19 @@ export default function Dashboard() {
   const router = useRouter();
   const logContainerRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        await authService.whoami();
+        setLoading(false);
+      } catch (err) {
+        // Interceptor will redirect, but just in case:
+        router.push('/login');
+      }
+    };
+    checkAuth();
+  }, [router]);
+
   const fetchStats = async () => {
     try {
       const data = await statsService.getStats();
@@ -128,13 +141,13 @@ export default function Dashboard() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6 md:p-10 font-sans">
+    <main className="min-h-screen bg-gray-950 text-white font-sans p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
