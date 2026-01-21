@@ -3,13 +3,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import cookieParser from 'cookie-parser';
+import bcrypt from 'bcryptjs';
+import pool from './db';
 
 // Routes
 import authRoutes from './routes/auth';
 import statsRoutes from './routes/stats';
 import tradesRoutes from './routes/trades';
 import holdingsRoutes from './routes/holdings';
-// import botRoutes from './routes/bot'; 
+import botRoutes from './routes/bot';
 
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../.env') });
@@ -22,8 +24,14 @@ const app = express();
 const port = process.env.PORT || 8000;
 
 // CORS configuration for credentials
+const allowedOrigins = [
+    'https://trade-automation-one.vercel.app',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL
+].filter(Boolean) as string[];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: allowedOrigins,
     credentials: true,
 }));
 
@@ -40,7 +48,7 @@ app.use('/', authRoutes);
 app.use('/stats', statsRoutes);
 app.use('/trades', tradesRoutes);
 app.use('/holdings', holdingsRoutes);
-// app.use('/bot', botRoutes);
+app.use('/bot', botRoutes);
 
 // Error handlers
 process.on('uncaughtException', (err) => {
@@ -51,6 +59,31 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-app.listen(port, () => {
-    console.log(`Server is running at http://localhost:${port}`);
-});
+async function seedAdmin() {
+    const username = 'allenngk';
+    const password = 'Kkmballenn@2004';
+
+    try {
+        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (result.rows.length === 0) {
+            console.log('Seeding default admin user...');
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await pool.query(
+                'INSERT INTO users (username, hashed_password) VALUES ($1, $2)',
+                [username, hashedPassword]
+            );
+            console.log('Admin user seeded successfully.');
+        }
+    } catch (err) {
+        console.error('Error seeding admin user:', err);
+    }
+}
+
+const startServer = async () => {
+    await seedAdmin();
+    app.listen(port, () => {
+        console.log(`Server is running at http://localhost:${port}`);
+    });
+};
+
+startServer();
