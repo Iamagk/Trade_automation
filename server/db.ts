@@ -2,30 +2,36 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load env vars from root .env
-dotenv.config({ path: path.join(__dirname, '../.env') });
+// Load env vars from root .env if it exists
+const envPath = path.join(__dirname, '../.env');
+dotenv.config({ path: envPath });
 
-const requiredEnvVars = [
-    'POSTGRES_USER',
-    'POSTGRES_HOST',
-    'POSTGRES_DB',
-    'POSTGRES_PASSWORD',
-    'POSTGRES_PORT'
-];
+const connectionString = process.env.DATABASE_URL;
+const isProduction = process.env.NODE_ENV === 'production' || !!connectionString;
 
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        throw new Error(`Missing required environment variable: ${envVar}`);
-    }
+const poolConfig: any = connectionString
+    ? { connectionString }
+    : {
+        user: process.env.POSTGRES_USER,
+        host: process.env.POSTGRES_HOST,
+        database: process.env.POSTGRES_DB,
+        password: process.env.POSTGRES_PASSWORD,
+        port: parseInt(process.env.POSTGRES_PORT || '5432'),
+    };
+
+// Add SSL for production/Render connections
+if (isProduction && connectionString && !connectionString.includes('localhost')) {
+    poolConfig.ssl = {
+        rejectUnauthorized: false
+    };
 }
 
-const pool = new Pool({
-    user: process.env.POSTGRES_USER,
-    host: process.env.POSTGRES_HOST,
-    database: process.env.POSTGRES_DB,
-    password: process.env.POSTGRES_PASSWORD,
-    port: parseInt(process.env.POSTGRES_PORT as string),
-});
+// Final check if we have enough info
+if (!connectionString && !process.env.POSTGRES_HOST) {
+    throw new Error('Missing database configuration. Provide DATABASE_URL or POSTGRES_HOST variables.');
+}
+
+const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
     console.error('Unexpected error on idle client', err);
