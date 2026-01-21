@@ -4,6 +4,7 @@ export interface BotStatus {
     startTime: string | null;
     mode: 'dry-run' | 'real' | 'login' | null;
     logCount: number;
+    isAuthorized: boolean;
 }
 
 export interface Trade {

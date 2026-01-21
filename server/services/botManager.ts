@@ -153,12 +153,27 @@ class BotManager {
     }
 
     public getStatus() {
+        // Check if Zerodha access token exists
+        let isAuthorized = false;
+        try {
+            const tokenPath = path.join(path.resolve(__dirname, '../../'), 'access_token.json');
+            if (fs.existsSync(tokenPath)) {
+                const data = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+                if (data.access_token) {
+                    isAuthorized = true;
+                }
+            }
+        } catch (e) {
+            isAuthorized = false;
+        }
+
         return {
             status: this.state.status,
             pid: this.state.pid,
             startTime: this.state.startTime,
             mode: this.state.mode,
-            logCount: this.state.logs.length
+            logCount: this.state.logs.length,
+            isAuthorized
         };
     }
 

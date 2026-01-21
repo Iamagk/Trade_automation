@@ -27,7 +27,7 @@ import { BotStatus } from "@/services/types";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
-  const [botStatus, setBotStatus] = useState<BotStatus>({ status: 'IDLE', mode: null, pid: null, startTime: null, logCount: 0 });
+  const [botStatus, setBotStatus] = useState<BotStatus>({ status: 'IDLE', mode: null, pid: null, startTime: null, logCount: 0, isAuthorized: false });
   const [botLogs, setBotLogs] = useState<string[]>([]);
   const [requestToken, setRequestToken] = useState("");
   const [loading, setLoading] = useState(true);
@@ -365,9 +365,13 @@ export default function Dashboard() {
                   <>
                     <button
                       onClick={() => handleBotAction("start", "login")}
-                      className="flex items-center justify-center gap-2 w-full py-3 bg-purple-500/10 border border-purple-500/30 text-purple-400 rounded-xl hover:bg-purple-500/20 transition-all text-sm font-bold"
+                      className={`flex items-center justify-center gap-2 w-full py-3 border rounded-xl transition-all text-sm font-bold shadow-lg ${botStatus.isAuthorized
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                          : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
+                        }`}
                     >
-                      <ShieldCheck className="w-4 h-4" /> Authorize Zerodha
+                      <ShieldCheck className={`w-4 h-4 ${botStatus.isAuthorized ? 'text-emerald-400' : 'text-red-400'}`} />
+                      {botStatus.isAuthorized ? 'Zerodha Authorized' : 'Authorize Zerodha'}
                     </button>
                     <div className="h-px bg-gray-800 my-2"></div>
                     <button
