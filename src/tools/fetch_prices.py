@@ -5,29 +5,43 @@ import argparse
 
 def fetch_prices(symbols):
     result = {}
-    for symbol in symbols:
+    for original_symbol in symbols:
         try:
-            # Ensure .NS suffix for Indian stocks if not present
-            yf_symbol = symbol if symbol.endswith(".NS") or symbol.endswith(".BO") else f"{symbol}.NS"
+            # Ensure .NS suffix for Indian stocks 
+            yf_symbol = original_symbol
+            if not (original_symbol.endswith(".NS") or original_symbol.endswith(".BO")):
+                yf_symbol = f"{original_symbol}.NS"
+                
             ticker = yf.Ticker(yf_symbol)
             
-            # Use fast_info for max speed and accuracy
+            price = None
+            # Try fast_info
             try:
                 price = ticker.fast_info['last_price']
             except:
-                # Fallback
-                info = ticker.info
-                price = info.get('currentPrice') or info.get('regularMarketPrice')
+                pass
             
+            # Fallback 1: info
             if not price:
-                hist = ticker.history(period="1d")
-                if not hist.empty:
-                    price = hist['Close'].iloc[-1]
+                try:
+                    info = ticker.info
+                    price = info.get('currentPrice') or info.get('regularMarketPrice')
+                except:
+                    pass
+            
+            # Fallback 2: history
+            if not price:
+                try:
+                    hist = ticker.history(period="1d")
+                    if not hist.empty:
+                        price = hist['Close'].iloc[-1]
+                except:
+                    pass
             
             if price:
-                result[symbol] = float(price)
-        except Exception as e:
-            # Silently skip errors for individual symbols
+                # Map back to the ORIGINAL symbol passed by Node.js
+                result[original_symbol] = float(price)
+        except Exception:
             pass
     return result
 

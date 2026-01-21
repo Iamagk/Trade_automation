@@ -12,7 +12,7 @@ router.get('/', authenticateToken, async (req, res) => {
         const holdingsDict: Record<string, { qty: number; cost: number }> = {};
 
         for (const trade of trades) {
-            const symbol = trade.symbol;
+            const symbol = trade.symbol.trim();
             if (!holdingsDict[symbol]) {
                 holdingsDict[symbol] = { qty: 0, cost: 0.0 };
             }
@@ -31,17 +31,41 @@ router.get('/', authenticateToken, async (req, res) => {
             }
         }
 
-        const botHoldings: any[] = [];
-        for (const symbol in holdingsDict) {
-            if (holdingsDict[symbol].qty > 0) {
-                const avgPrice = holdingsDict[symbol].cost / holdingsDict[symbol].qty;
-                botHoldings.push({
-                    symbol: symbol,
-                    quantity: holdingsDict[symbol].qty,
-                    average_price: avgPrice,
-                    current_price: avgPrice // Fallback as we don't have live API yet
-                });
+        const activeSymbols = Object.keys(holdingsDict).filter(sym => holdingsDict[sym].qty > 0);
+        let prices: Record<string, number> = {};
+
+        if (activeSymbols.length > 0) {
+            try {
+                const { execSync } = require('child_process');
+                const path = require('path');
+                const projectRoot = path.resolve(__dirname, '../../');
+                const fetchScript = path.join(projectRoot, 'src/tools/fetch_prices.py');
+                const symbolsArg = activeSymbols.join(' ');
+
+                let pythonCmd = 'python3';
+                try {
+                    execSync('python3 --version');
+                } catch {
+                    pythonCmd = 'python';
+                }
+
+                const output = execSync(`${pythonCmd} ${fetchScript} ${symbolsArg}`).toString();
+                prices = JSON.parse(output);
+            } catch (err) {
+                console.error('Error fetching live prices for holdings:', err);
             }
+        }
+
+        const botHoldings: any[] = [];
+        for (const symbol of activeSymbols) {
+            const stats = holdingsDict[symbol];
+            const avgPrice = stats.cost / stats.qty;
+            botHoldings.push({
+                symbol: symbol,
+                quantity: stats.qty,
+                average_price: avgPrice,
+                current_price: prices[symbol] || avgPrice // Fallback only if fetch failed
+            });
         }
 
         res.json(botHoldings);
