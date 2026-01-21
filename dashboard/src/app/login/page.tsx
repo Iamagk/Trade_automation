@@ -89,9 +89,7 @@ export default function LoginPage() {
                     </button>
                 </form>
 
-                <p className="text-center mt-8 text-sm text-gray-500">
-                    Default credentials: <span className="text-gray-400 font-mono">allenngk / Kkmballenn@2004</span>
-                </p>
+
             </div>
         </div>
     );
