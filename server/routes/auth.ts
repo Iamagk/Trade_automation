@@ -8,6 +8,7 @@ const router = express.Router();
 
 // Login endpoint
 router.post('/token', async (req, res) => {
+    console.log('Login attempt:', req.body.username);
     const { username, password } = req.body;
 
     if (!process.env.JWT_SECRET || !process.env.ACCESS_TOKEN_EXPIRE_MINUTES) {

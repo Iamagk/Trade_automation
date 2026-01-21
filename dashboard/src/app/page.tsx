@@ -27,7 +27,7 @@ import { BotStatus } from "@/services/types";
 
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
-  const [botStatus, setBotStatus] = useState<BotStatus>({ is_running: false, mode: null, pid: null });
+  const [botStatus, setBotStatus] = useState<BotStatus>({ status: 'IDLE', mode: null, pid: null, startTime: null, logCount: 0 });
   const [botLogs, setBotLogs] = useState<string[]>([]);
   const [requestToken, setRequestToken] = useState("");
   const [loading, setLoading] = useState(true);
@@ -108,11 +108,11 @@ export default function Dashboard() {
     fetchStats();
     fetchBotStatus();
 
-    const statusInterval = setInterval(fetchBotStatus, 5000);
+    const statusInterval = setInterval(fetchBotStatus, 3000);
 
-    // Poll logs if running (stubbed for now)
+    // Poll logs if running
     let logsInterval: any;
-    if (botStatus.is_running) {
+    if (botStatus.status === 'RUNNING') {
       fetchBotLogs();
       logsInterval = setInterval(fetchBotLogs, 2000);
     } else {
@@ -123,7 +123,7 @@ export default function Dashboard() {
       clearInterval(statusInterval);
       if (logsInterval) clearInterval(logsInterval);
     };
-  }, [botStatus.is_running]);
+  }, [botStatus.status]);
 
   if (loading) {
     return (
@@ -194,13 +194,13 @@ export default function Dashboard() {
 
           <div className="p-6 bg-gray-900 rounded-2xl border border-gray-800 shadow-lg group hover:border-purple-500/50 transition-all">
             <div className="flex justify-between items-start mb-4">
-              <div className={`p-3 rounded-xl ${botStatus.is_running ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}`}>
-                <Activity className={`w-6 h-6 ${botStatus.is_running ? 'animate-pulse' : ''}`} />
+              <div className={`p-3 rounded-xl ${botStatus.status === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}`}>
+                <Activity className={`w-6 h-6 ${botStatus.status === 'RUNNING' ? 'animate-pulse' : ''}`} />
               </div>
             </div>
             <div className="text-sm text-gray-400 mb-1">Active Status</div>
-            <div className={`text-3xl font-bold ${botStatus.is_running ? 'text-emerald-400' : 'text-gray-500'}`}>
-              {botStatus.is_running ? "Active" : "Idle"}
+            <div className={`text-3xl font-bold ${botStatus.status === 'RUNNING' ? 'text-emerald-400' : 'text-gray-500'}`}>
+              {botStatus.status === 'RUNNING' ? "Active" : "Idle"}
             </div>
           </div>
         </div>
@@ -255,7 +255,7 @@ export default function Dashboard() {
             <div className="bg-gray-950 rounded-2xl border border-gray-800 shadow-xl overflow-hidden">
               <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900">
                 <h2 className="text-sm font-bold flex items-center gap-2 text-gray-400 uppercase tracking-widest">
-                  <span className={`w-2 h-2 rounded-full ${botStatus.is_running ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${botStatus.status === 'RUNNING' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-600'}`}></span>
                   Live Bot Output
                 </h2>
                 <div className="flex gap-1.5">
@@ -277,7 +277,7 @@ export default function Dashboard() {
                   ))
                 ) : (
                   <div className="text-gray-600 italic">
-                    {botStatus.is_running ? "Capturing output..." : "Start the bot to see logs here."}
+                    {botStatus.status === 'RUNNING' ? "Capturing output..." : "Start the bot to see logs here."}
                   </div>
                 )}
               </div>
@@ -313,7 +313,7 @@ export default function Dashboard() {
                 <Settings className="w-5 h-5 text-blue-400" /> Bot Controls
               </h2>
               <div className="grid grid-cols-1 gap-3">
-                {botStatus.is_running ? (
+                {botStatus.status === 'RUNNING' ? (
                   <div className="space-y-4">
                     <button
                       onClick={() => handleBotAction("stop")}
@@ -387,17 +387,17 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className={`bg-gradient-to-br transition-all duration-500 ${botStatus.is_running ? 'from-emerald-600 to-blue-600' : 'from-gray-700 to-gray-800'} rounded-2xl p-6 shadow-xl relative overflow-hidden`}>
+            <div className={`bg-gradient-to-br transition-all duration-500 ${botStatus.status === 'RUNNING' ? 'from-emerald-600 to-blue-600' : 'from-gray-700 to-gray-800'} rounded-2xl p-6 shadow-xl relative overflow-hidden`}>
               <div className="relative z-10 text-white">
                 <h3 className="text-lg font-bold mb-2">System Status</h3>
                 <p className="text-sm text-blue-100 mb-4 opacity-90">
-                  {botStatus.is_running
+                  {botStatus.status === 'RUNNING'
                     ? `The bot is currently running in ${botStatus.mode} mode.`
                     : "The bot is currently idle. Start a run from the controls above."}
                 </p>
                 <div className={`flex items-center gap-2 text-xs font-mono uppercase tracking-widest bg-black/20 w-fit px-3 py-1 rounded-full border border-white/10`}>
-                  <span className={`w-2 h-2 rounded-full ${botStatus.is_running ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`}></span>
-                  {botStatus.is_running ? "Active" : "Idle"}
+                  <span className={`w-2 h-2 rounded-full ${botStatus.status === 'RUNNING' ? 'bg-emerald-400 animate-pulse' : 'bg-gray-400'}`}></span>
+                  {botStatus.status === 'RUNNING' ? "Active" : "Idle"}
                 </div>
               </div>
               <div className="absolute top-0 right-0 p-4 opacity-10">

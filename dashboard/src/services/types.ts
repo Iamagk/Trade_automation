@@ -1,7 +1,9 @@
 export interface BotStatus {
-    is_running: boolean;
-    mode: string | null;
+    status: 'IDLE' | 'RUNNING' | 'ERROR';
     pid: number | null;
+    startTime: string | null;
+    mode: 'dry-run' | 'real' | 'login' | null;
+    logCount: number;
 }
 
 export interface Trade {
