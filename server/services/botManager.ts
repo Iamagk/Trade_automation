@@ -42,11 +42,7 @@ class BotManager {
         }
     }
 
-    public start(mode: string) {
-        if (this.state.status === 'RUNNING') {
-            throw new Error('Bot is already running');
-        }
-
+    private getProjectRoot(): string {
         let projectRoot = path.resolve(__dirname, '../../');
         // If we are in 'server/dist/services', go up one more level
         if (__dirname.includes(path.join('server', 'dist')) || __dirname.includes('dist')) {
@@ -57,6 +53,15 @@ class BotManager {
         if (!fs.existsSync(path.join(projectRoot, 'src')) && fs.existsSync(path.resolve(projectRoot, '../src'))) {
             projectRoot = path.resolve(projectRoot, '../');
         }
+        return projectRoot;
+    }
+
+    public start(mode: string) {
+        if (this.state.status === 'RUNNING') {
+            throw new Error('Bot is already running');
+        }
+
+        const projectRoot = this.getProjectRoot();
 
         // Auto-detect virtual environment
         let pythonPath = process.env.PYTHON_PATH;
@@ -143,6 +148,17 @@ class BotManager {
         this.process.kill();
     }
 
+    public deauthorize() {
+        const projectRoot = this.getProjectRoot();
+        const tokenPath = path.join(projectRoot, 'access_token.json');
+        if (fs.existsSync(tokenPath)) {
+            fs.unlinkSync(tokenPath);
+            this.addLog('Zerodha deauthorized (access_token.json deleted).');
+        } else {
+            this.addLog('Zerodha already deauthorized (access_token.json not found).');
+        }
+    }
+
     public sendInput(input: string) {
         if (!this.process || !this.process.stdin) {
             throw new Error('No bot process running or stdin is closed');
@@ -156,7 +172,7 @@ class BotManager {
         // Check if Zerodha access token exists
         let isAuthorized = false;
         try {
-            const tokenPath = path.join(path.resolve(__dirname, '../../'), 'access_token.json');
+            const tokenPath = path.join(this.getProjectRoot(), 'access_token.json');
             if (fs.existsSync(tokenPath)) {
                 const data = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
                 if (data.access_token) {

@@ -37,6 +37,16 @@ router.post('/stop', authenticateToken, (req, res) => {
     res.json({ message: 'Bot stop signal sent', status: botManager.getStatus() });
 });
 
+// Deauthorize Zerodha
+router.post('/deauthorize', authenticateToken, (req, res) => {
+    try {
+        botManager.deauthorize();
+        res.json({ message: 'Zerodha deauthorized successfully', status: botManager.getStatus() });
+    } catch (error: any) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
 // Send input to the bot
 router.post('/input', authenticateToken, (req, res) => {
     const { input } = req.body;

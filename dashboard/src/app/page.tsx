@@ -106,6 +106,17 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeauthorize = async () => {
+    if (!confirm("Are you sure you want to deauthorize Zerodha? This will clear your session.")) return;
+    try {
+      await botService.deauthorize();
+      fetchBotStatus();
+      alert("Zerodha deauthorized successfully");
+    } catch (err: any) {
+      alert(err.response?.data?.detail || err.message || "Deauthorization failed");
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await authService.logout();
@@ -363,16 +374,27 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <>
-                    <button
-                      onClick={() => handleBotAction("start", "login")}
-                      className={`flex items-center justify-center gap-2 w-full py-3 border rounded-xl transition-all text-sm font-bold shadow-lg ${botStatus.isAuthorized
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleBotAction("start", "login")}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 border rounded-xl transition-all text-sm font-bold shadow-lg ${botStatus.isAuthorized
                           ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
                           : 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20'
-                        }`}
-                    >
-                      <ShieldCheck className={`w-4 h-4 ${botStatus.isAuthorized ? 'text-emerald-400' : 'text-red-400'}`} />
-                      {botStatus.isAuthorized ? 'Zerodha Authorized' : 'Authorize Zerodha'}
-                    </button>
+                          }`}
+                      >
+                        <ShieldCheck className={`w-4 h-4 ${botStatus.isAuthorized ? 'text-emerald-400' : 'text-red-400'}`} />
+                        {botStatus.isAuthorized ? 'Zerodha Authorized' : 'Authorize Zerodha'}
+                      </button>
+                      {botStatus.isAuthorized && (
+                        <button
+                          onClick={handleDeauthorize}
+                          className="px-4 py-3 bg-red-900/20 border border-red-500/30 text-red-400 rounded-xl hover:bg-red-900/30 transition-all text-sm font-bold"
+                          title="Deauthorize Zerodha"
+                        >
+                          <LogOut className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                     <div className="h-px bg-gray-800 my-2"></div>
                     <button
                       onClick={() => handleBotAction("start", "run_now_dry")}

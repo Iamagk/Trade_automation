@@ -21,6 +21,10 @@ class BotService extends ControllerService {
     public async sendInput(input: string): Promise<{ status: string }> {
         return this.post<{ status: string }>('/bot/input', { input });
     }
+
+    public async deauthorize(): Promise<{ status: any }> {
+        return this.post<{ status: any }>('/bot/deauthorize', {});
+    }
 }
 
 export const botService = new BotService();
