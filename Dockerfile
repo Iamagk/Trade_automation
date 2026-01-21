@@ -1,21 +1,32 @@
 FROM python:3.10-slim
 
-WORKDIR /app
-
-# Install system dependencies (if any needed for psycopg2 or others)
+# Install Node.js
 RUN apt-get update && apt-get install -y \
+    curl \
     build-essential \
     libpq-dev \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+WORKDIR /app
 
+# Install Python dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Node.js dependencies for the server
+COPY server/package*.json ./server/
+RUN cd server && npm install
+
+# Copy all files
 COPY . .
+
+# Build Node.js server
+RUN cd server && npm run build
 
 # Expose port (Render sets PORT env)
 ENV PORT=8000
 
-# Command to run the application
-CMD uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+# Command to run the Node.js application
+CMD ["node", "server/dist/index.js"]
