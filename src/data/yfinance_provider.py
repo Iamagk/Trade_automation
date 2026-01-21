@@ -22,12 +22,21 @@ class YFinanceDataProvider(IDataProvider):
             try:
                 # 1. Get Historical Data for DMA (Daily)
                 series = None
+                
+                # Try Adj Close first
                 if 'Adj Close' in data.columns.get_level_values(0):
-                    series = data['Adj Close'][ticker]
-                elif 'Close' in data.columns.get_level_values(0):
-                    series = data['Close'][ticker]
+                    adj_df = data['Adj Close']
+                    if ticker in adj_df.columns:
+                        series = adj_df[ticker]
+                
+                # Fallback to Close if series is still None
+                if series is None and 'Close' in data.columns.get_level_values(0):
+                    close_df = data['Close']
+                    if ticker in close_df.columns:
+                        series = close_df[ticker]
                 
                 if series is None:
+                    # Ticker likely failed download
                     continue
 
                 series = series.dropna()
