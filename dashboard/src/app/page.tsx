@@ -163,9 +163,14 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Trading Dashboard</h1>
-            <p className="text-gray-400">Welcome back, Client</p>
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl overflow-hidden border border-gray-800 shadow-lg">
+              <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold mb-1">Trade Automation</h1>
+              <p className="text-gray-400 text-sm">Welcome back, Client</p>
+            </div>
           </div>
           <div className="flex gap-3">
             <button
