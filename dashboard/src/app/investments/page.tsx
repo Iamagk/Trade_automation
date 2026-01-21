@@ -13,8 +13,8 @@ import {
     Briefcase
 } from "lucide-react";
 import Link from "next/link";
-import { holdingsService, Holding } from "../../services/holdingsService";
-import { authService } from "../../services/authService";
+import { holdingsService, Holding } from "@/services/holdingsService";
+import { authService } from "@/services/authService";
 
 export default function Investments() {
     const [holdings, setHoldings] = useState<Holding[]>([]);

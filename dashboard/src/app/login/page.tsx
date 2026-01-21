@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, User, AlertCircle } from "lucide-react";
-import { authService } from "../../services/authService";
+import { authService } from "@/services/authService";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");

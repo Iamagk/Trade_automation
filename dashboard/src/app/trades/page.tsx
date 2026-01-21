@@ -15,9 +15,9 @@ import {
     Filter
 } from "lucide-react";
 import Link from "next/link";
-import { tradeService } from "../../services/tradeService";
-import { authService } from "../../services/authService";
-import { Trade } from "../../services/types";
+import { tradeService } from "@/services/tradeService";
+import { authService } from "@/services/authService";
+import { Trade } from "@/services/types";
 
 export default function TradeHistory() {
     const [trades, setTrades] = useState<Trade[]>([]);
