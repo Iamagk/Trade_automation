@@ -38,7 +38,12 @@ router.get('/', authenticateToken, async (req, res) => {
             try {
                 const { execSync } = require('child_process');
                 const path = require('path');
-                const projectRoot = path.resolve(__dirname, '../../');
+                let projectRoot = path.resolve(__dirname, '../../');
+
+                if (__dirname.includes('dist')) {
+                    projectRoot = path.resolve(__dirname, '../../../');
+                }
+
                 const fetchScript = path.join(projectRoot, 'src/tools/fetch_prices.py');
                 const symbolsArg = activeSymbols.join(' ');
 

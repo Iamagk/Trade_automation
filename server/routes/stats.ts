@@ -40,7 +40,12 @@ router.get('/', authenticateToken, async (req, res) => {
             try {
                 const { execSync } = require('child_process');
                 const path = require('path');
-                const projectRoot = path.resolve(__dirname, '../../');
+                let projectRoot = path.resolve(__dirname, '../../');
+
+                // If we are in 'dist' (production), go up one more level to reach project root
+                if (__dirname.includes('dist')) {
+                    projectRoot = path.resolve(__dirname, '../../../');
+                }
 
                 // Use the same project root detection logic as BotManager
                 // For Docker/Production, we need a reliable path to the python script
