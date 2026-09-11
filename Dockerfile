@@ -1,32 +1,28 @@
-FROM python:3.10-slim
-
-# Install Node.js
-RUN apt-get update && apt-get install -y \
-    curl \
-    build-essential \
-    libpq-dev \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY requirements.txt .
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install python dependencies
+COPY trading_system/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Node.js dependencies for the server
-COPY server/package*.json ./server/
-RUN cd server && npm install
+# Copy source code
+COPY trading_system/ trading_system/
 
-# Copy all files
-COPY . .
+# Copy env template (will be overridden by Docker Compose / Secret Manager in prod)
+COPY trading_system/.env.example .env
 
-# Build Node.js server
-RUN cd server && npm run build
+# Expose API port
+EXPOSE 8000
 
-# Expose port (Render sets PORT env)
-ENV PORT=8000
+# Set Python path so `trading_system` is importable
+ENV PYTHONPATH=/app
 
-# Command to run the Node.js application
-CMD ["node", "server/dist/index.js"]
+# Start the application
+CMD ["uvicorn", "trading_system.main:app", "--host", "0.0.0.0", "--port", "8000"]

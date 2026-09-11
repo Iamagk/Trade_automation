@@ -1,26 +1,54 @@
-services:
-  db:
-    image: postgres:15
-    restart: always
-    environment:
-      POSTGRES_USER: nifty_user_isolated
-      POSTGRES_PASSWORD: nifty_pass_789
-      POSTGRES_DB: nifty_db_isolated
-    ports:
-      - "5434:5432"
-    volumes:
-      - nifty_db_data:/var/lib/postgresql/data
+version: '3.8'
 
-  pgadmin:
-    image: dpage/pgadmin4
-    restart: always
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@nifty.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+services:
+  trading-engine:
+    build: .
+    container_name: fnO_trading_engine
+    restart: unless-stopped
     ports:
-      - "5050:80"
+      - "8000:8000"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - trading_system/.env
     depends_on:
-      - db
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: fnO_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: fnO_postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-trading_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-trading_password}
+      POSTGRES_DB: ${POSTGRES_DB:-trading_db}
+    volumes:
+      - fnO_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U trading_user -d trading_db" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
 volumes:
-  nifty_db_data:
+  fnO_db_data:

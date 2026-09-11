@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              Int      @id @default(autoincrement())
+  username        String   @unique
+  hashedPassword  String
+  createdAt       DateTime @default(now())
+}
+
+model Trade {
+  id              Int      @id @default(autoincrement())
+  date            DateTime @default(now())
+  tradingsymbol   String   @map("tradingsymbol")
+  option_type     String   @map("option_type")
+  entry_price     Float    @map("entry_price")
+  exit_price      Float?   @map("exit_price")
+  quantity        Int
+  entry_time      DateTime @map("entry_time")
+  exit_time       DateTime? @map("exit_time")
+  pnl             Float?
+  exit_reason     String?  @map("exit_reason")
+  entry_order_id  String?  @map("entry_order_id")
+  exit_order_id   String?  @map("exit_order_id")
+
+  @@map("trades")
+}
+
+model StrategyState {
+  id              Int      @id @default(autoincrement())
+  key             String   @unique
+  value           Json
+  updatedAt       DateTime @updatedAt
+}

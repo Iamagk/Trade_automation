@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 class ControllerService {
     protected api: AxiosInstance;
@@ -8,33 +8,21 @@ class ControllerService {
     constructor() {
         this.api = axios.create({
             baseURL: NEXT_PUBLIC_API_URL,
-            withCredentials: true,  // Enable cookies
+            withCredentials: true,
             headers: {
                 'Content-Type': 'application/json',
             },
         });
 
-        // Add request interceptor to attach Bearer token
-        this.api.interceptors.request.use(
-            (config) => {
-                if (typeof window !== "undefined") {
-                    const token = localStorage.getItem("auth_token");
-                    if (token) {
-                        config.headers.Authorization = `Bearer ${token}`;
-                    }
-                }
-                return config;
-            },
-            (error) => Promise.reject(error)
-        );
-
-        // Global response interceptor for auth errors
         this.api.interceptors.response.use(
-            (response) => response,
+            (response) => {
+                console.log(`[Dashboard API] Response from ${response.config.url}:`, response.data);
+                return response;
+            },
             (error) => {
+                console.error(`[Dashboard API] Error from ${error.config?.url}:`, error.message);
                 if (error.response?.status === 401) {
-                    if (typeof window !== 'undefined' &&
-                        !window.location.pathname.includes('/login')) {
+                    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
                         window.location.href = '/login';
                     }
                 }
@@ -48,38 +36,8 @@ class ControllerService {
         return response.data;
     }
 
-    protected async post<T, D = any>(
-        url: string,
-        data?: D,
-        config?: AxiosRequestConfig
-    ): Promise<T> {
+    protected async post<T, D = any>(url: string, data?: D, config?: AxiosRequestConfig): Promise<T> {
         const response: AxiosResponse<T> = await this.api.post(url, data, config);
-        return response.data;
-    }
-
-    protected async put<T, D = any>(
-        url: string,
-        data?: D,
-        config?: AxiosRequestConfig
-    ): Promise<T> {
-        const response: AxiosResponse<T> = await this.api.put(url, data, config);
-        return response.data;
-    }
-
-    protected async patch<T, D = any>(
-        url: string,
-        data?: D,
-        config?: AxiosRequestConfig
-    ): Promise<T> {
-        const response: AxiosResponse<T> = await this.api.patch(url, data, config);
-        return response.data;
-    }
-
-    protected async delete<T>(
-        url: string,
-        config?: AxiosRequestConfig
-    ): Promise<T> {
-        const response: AxiosResponse<T> = await this.api.delete(url, config);
         return response.data;
     }
 }

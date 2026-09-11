@@ -13,11 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trade Automation",
-  description: "Advanced Algorithmic Trading Dashboard",
-  icons: {
-    icon: "/logo.jpg",
-  },
+  title: "F&O Smart Dashboard",
+  description: "Enterprise-grade automation and monitoring for options trading.",
 };
 
 export default function RootLayout({
